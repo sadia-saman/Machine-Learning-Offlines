@@ -1,0 +1,13 @@
+Conv 6 5 2 1
+ReLU
+Pool 2 2
+Conv 12 5 1 0
+ReLU
+Pool 2 2
+Conv 10 5 1 0
+ReLU
+Pool 2 2
+Flatten
+FC 10
+Softmax
+
