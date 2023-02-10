@@ -38,10 +38,10 @@ class Convolution :
                 output[x,y] = np.sum(conv_box*kernel)
         return output
 
-    def add_padding(self, image):
-        if self.padding == 0:
+    def add_padding(self, image, padding_x, padding_y):
+        if padding_x <= 0 & padding_y <= 0:
             return image
-        return np.pad(image, [(self.padding, self.padding),(self.padding, self.padding)], mode='constant')
+        return np.pad(image, [(padding_x, padding_y),(padding_x, padding_y)], mode='constant') 
 
     def forward_propagation(self, images):  
         print("Convolution ",end=" ")
@@ -54,7 +54,7 @@ class Convolution :
         
         for image_idx in range(np.shape(images)[0]):
             for k in range(np.shape(images)[1]):
-                image = self.add_padding(images[image_idx][k])
+                image = self.add_padding(images[image_idx][k] , self.padding, self.padding)
                 self.X[image_idx][k] = image
                 for i in range(self.N_out_channel): 
                     feature_map[image_idx][i] = self.convolve(image, self.kernels[i], feature_map_dimX, feature_map_dimY) + self.biases[i]
@@ -72,22 +72,26 @@ class Convolution :
 
         del_B = np.sum(np.sum(np.sum(del_Z, axis=3),axis = 2), axis=0)
 
-
-        del_X_dimX = (int)((self.X.shape[0]-self.filter_dimension+self.padding+self.stride)/self.stride)
-        del_X_dimY = (int)((self.X.shape[1]-self.filter_dimension+self.padding+self.stride)/self.stride)
-
-        del_X = []
         rotated_kernels = np.array([np.fliplr(np.flipud(kernel)) for kernel in self.kernels]) 
-        for k in range(np.shape(del_Z)[0]):
-            del_X.append([])
+        del_X = np.zeros((np.shape(self.X)[0], np.shape(self.X)[1], np.shape(self.X[0][0])[0], np.shape(self.X[0][0])[1]))
+        print("\n del_X shape ", np.shape(del_X)," del_Z shape ", np.shape(del_Z))
+
+        padding_x =((np.shape(del_Z)[2]*self.stride) - np.shape(del_X)[2]) + self.filter_dimension - self.stride - self.padding
+        padding_y =((np.shape(del_Z)[3]*self.stride) - np.shape(del_X)[3]) + self.filter_dimension - self.stride - self.padding
+        
+        print("padding_x ", padding_x, " padding_y ", padding_y)
+
+        for k in range(np.shape(del_Z)[0]): 
             for i in range(np.shape(del_Z)[1]):
-                padded_del_Z = self.add_padding(del_Z[k][i])
-                del_X_dimX = (int)((self.X.shape[0]-self.filter_dimension+self.padding+self.stride)/self.stride)
-                del_X_dimY = (int)((self.X.shape[1]-self.filter_dimension+self.padding+self.stride)/self.stride)
-                del_X[k].append(np.zeros((del_X_dimX, del_X_dimY)))
-                for idx in range(rotated_kernels.shape[0]):
-                    del_X[k][i] += self.convolve(padded_del_Z, rotated_kernels[idx], del_X_dimX, del_X_dimY)
-    
+                del_Z[k][i] = self.add_padding(del_Z[k][i], padding_x, padding_y)
+
+        
+        for k in range(np.shape(del_X)[0]): 
+            for j in range(np.shape(del_X)[1]):
+                for i in range(np.shape(del_Z)[1]): 
+                    for idx in range(rotated_kernels.shape[0]):
+                        del_X[k][j] += self.convolve(del_Z[k][i], rotated_kernels[idx], np.shape(del_X[k][j])[0], np.shape(del_X[k][j])[1])
+
         self.kernels = self.kernels - self.alpha*del_K
         self.biases = self.biases - self.alpha*del_B
         return del_X
@@ -133,8 +137,6 @@ class Pooling:
     
     def forward_propagation(self, feature_map): 
         print("Pooling ",end=" ")
-
-        print(np.shape(feature_map[0][0]))
         pool_dimX =(int) ((feature_map[0][0].shape[0]-self.pool_dimension+self.stride)/self.stride)
         pool_dimY =(int) ((feature_map[0][0].shape[1]-self.pool_dimension+self.stride)/self.stride)
         pool = np.zeros((feature_map.shape[0],feature_map.shape[1], pool_dimX, pool_dimY))
@@ -242,8 +244,7 @@ class Softmax:
     def forward_propagation(self, a_out): 
         print("Softmax ",end=" ")
         self.input = a_out
-        output = []
-        print(a_out[0])
+        output = [] 
         for i in range(len(a_out)):
             y_pred = np.exp(a_out[i])
             y_pred = y_pred/np.sum(y_pred)

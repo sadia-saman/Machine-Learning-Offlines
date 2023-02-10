@@ -70,6 +70,7 @@ class Model:
         for component in self.components:
             print(i, end=" ")
             i += 1
+            print("forward_in shape = ",np.shape(forward_in), end=" ")
             forward_in = component.forward_propagation(forward_in)
             print("forward_out shape = ",np.shape(forward_in))
 
