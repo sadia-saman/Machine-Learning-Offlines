@@ -9,9 +9,17 @@ import tqdm
 import cv2
 import os
 
+class Layer:
+    def forward_propagation(self, input):
+        # Define the forward pass for the layer
+        pass
+        
+    def backward_propagation(self, input):
+        # Define the backward pass for the layer
+        pass
 
 
-class Convolution :
+class Convolution(Layer) :
     def __init__(self, N_out_channel, filter_dimension, stride, padding):
         self.N_out_channel = N_out_channel
         self.filter_dimension = filter_dimension
@@ -44,9 +52,9 @@ class Convolution :
         return np.pad(image, [(padding_x, padding_y),(padding_x, padding_y)], mode='constant') 
 
     def forward_propagation(self, images):  
-        print("Convolution ",end=" ")
+        #print("Convolution ",end=" ")
 
-        self.X = images
+        self.X = np.empty((np.shape(images)[0], np.shape(images)[1]), dtype=object)
         feature_map_dimX = (int)((images[0][0].shape[0]-self.filter_dimension+self.padding+self.stride)/self.stride)
         feature_map_dimY = (int)((images[0][0].shape[1]-self.filter_dimension+self.padding+self.stride)/self.stride)
         feature_map = np.zeros((np.shape(images)[0], self.N_out_channel, feature_map_dimX, feature_map_dimY))
@@ -61,7 +69,7 @@ class Convolution :
         return feature_map
 
     def back_propagation(self, del_Z): 
-        print("Convolution ",end=" ")
+        #print("Convolution ",end=" ")
         del_K = np.zeros(self.kernels.shape) 
 
         for idx in range(del_K.shape[0]):
@@ -98,12 +106,12 @@ class Convolution :
 
         
 
-class ReLU:
+class ReLU(Layer):
     def __init__(self):
         self.RelU_input = []
         self.shape = None
     def forward_propagation(self, feature_map): 
-        print("ReLU ",end=" ")
+        #print("ReLU ",end=" ")
         self.ReLU_input = feature_map
         self.shape = feature_map.shape
         ReLU_output = np.zeros(feature_map.shape)
@@ -115,7 +123,7 @@ class ReLU:
         return ReLU_output
 
     def back_propagation(self, del_C): 
-        print("ReLU ",end=" ")
+        #print("ReLU ",end=" ")
         del_C_by_del_Z = np.zeros(shape=self.shape)
         for i in range(self.shape[0]):
             for j in range(self.shape[1]):
@@ -127,7 +135,7 @@ class ReLU:
         
 
 
-class Pooling:
+class Pooling(Layer):
     def __init__(self, pool_dimension, stride):
         self.pool_dimension = pool_dimension
         self.stride = stride
@@ -136,7 +144,7 @@ class Pooling:
         self.del_p = []
     
     def forward_propagation(self, feature_map): 
-        print("Pooling ",end=" ")
+        #print("Pooling ",end=" ")
         pool_dimX =(int) ((feature_map[0][0].shape[0]-self.pool_dimension+self.stride)/self.stride)
         pool_dimY =(int) ((feature_map[0][0].shape[1]-self.pool_dimension+self.stride)/self.stride)
         pool = np.zeros((feature_map.shape[0],feature_map.shape[1], pool_dimX, pool_dimY))
@@ -151,7 +159,7 @@ class Pooling:
         return pool
 
     def back_propagation(self, del_Z): 
-        print("Pooling ",end=" ")
+        #print("Pooling ",end=" ")
         del_P = np.array(del_Z)
         del_C = np.zeros(shape=self.input_shape) 
         for i in range(self.input_shape[0]):
@@ -166,7 +174,7 @@ class Pooling:
         return del_C
         
 
-class FlattenLayer:
+class FlattenLayer(Layer):
     def __init__(self):
         self.flattened_vector = []
         self.del_f = []
@@ -177,7 +185,7 @@ class FlattenLayer:
         return x_hat
 
     def forward_propagation(self, pool): 
-        print("Flatten ",end=" ")
+        #print("Flatten ",end=" ")
         self.pool_shape = pool.shape
         pool = np.array(pool)
         flattened_vector = []
@@ -187,11 +195,11 @@ class FlattenLayer:
         return self.flattened_vector
 
     def back_propagation(self, del_Z): 
-        print("Flatten ",end=" ")
+        #print("Flatten ",end=" ")
         self.del_f =  np.reshape(del_Z, self.pool_shape)
         return self.del_f
 
-class FullyConnectedNN:
+class FullyConnectedNN(Layer):
     def __init__(self, output_dim):
         self.output_dim = output_dim 
         self.weights = [] 
@@ -202,7 +210,7 @@ class FullyConnectedNN:
 
 
     def forward_propagation(self, flatten): 
-        print("Fully Connected ",end=" ")
+        #print("Fully Connected ",end=" ")
         self.flattened_input = flatten
         self.weights = np.random.randint(0,10, size=(self.output_dim, flatten.shape[1]))/ flatten.shape[1]
         FL_output = []
@@ -212,7 +220,7 @@ class FullyConnectedNN:
         return self.FL_output
 
     def back_propagation(self, del_Z): 
-        print("Fully Connected ",end=" ")  
+        #print("Fully Connected ",end=" ")  
         del_W = np.dot(self.flattened_input.T, del_Z) / del_Z.shape[0]
         del_b = np.sum(del_Z, axis=0)/del_Z.shape[0]
         del_f = np.dot(del_Z, self.weights)
@@ -227,22 +235,14 @@ class FullyConnectedNN:
     
 
 
-class Softmax:
+class Softmax(Layer):
     def __init__(self):
         self.input = []
         self.output = []
 
-    def one_hot_encoding(self, labels): 
-        num_classes = 10 
-        one_hot_labels = np.zeros((len(labels), num_classes)) 
-        for i, label in enumerate(labels):
-            one_hot_labels[i, label] = 1
-
-        return one_hot_labels
-
     
     def forward_propagation(self, a_out): 
-        print("Softmax ",end=" ")
+        #print("Softmax ",end=" ")
         self.input = a_out
         output = [] 
         for i in range(len(a_out)):
@@ -253,8 +253,8 @@ class Softmax:
         return self.output
 
     def back_propagation(self, y):
-        print("Softmax ",end=" ")
-        y_pred = self.one_hot_encoding(labels= y)
+        #print("Softmax ",end=" ")
+        y_pred = y
         del_Z = np.array(self.output) - np.array(y_pred) 
         return del_Z
          

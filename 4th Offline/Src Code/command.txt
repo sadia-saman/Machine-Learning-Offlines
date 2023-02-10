@@ -4,7 +4,7 @@ Pool 2 2
 Conv 12 5 1 0
 ReLU
 Pool 2 2
-Conv 10 5 1 0
+Conv 100 5 1 0
 ReLU
 Pool 2 2
 Flatten
