@@ -1,13 +1,4 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
-import pickle
-import scipy
-import sklearn
-import tqdm
-import cv2
-import os
+import numpy as np 
 
 class Layer:
     def forward_propagation(self, input):
@@ -31,7 +22,7 @@ class Convolution(Layer) :
         for i in range(N_out_channel):
             self.kernels.append(np.random.randint(1,10, size=(filter_dimension, filter_dimension)))
         self.kernels = np.array(self.kernels)
-        self.biases = np.zeros(N_out_channel) 
+        self.biases = np.ones(N_out_channel) 
         self.scale_constant = 0.0001
         self.alpha = 0.0001
         
@@ -82,12 +73,10 @@ class Convolution(Layer) :
 
         rotated_kernels = np.array([np.fliplr(np.flipud(kernel)) for kernel in self.kernels]) 
         del_X = np.zeros((np.shape(self.X)[0], np.shape(self.X)[1], np.shape(self.X[0][0])[0], np.shape(self.X[0][0])[1]))
-        print("\n del_X shape ", np.shape(del_X)," del_Z shape ", np.shape(del_Z))
 
         padding_x =((np.shape(del_Z)[2]*self.stride) - np.shape(del_X)[2]) + self.filter_dimension - self.stride - self.padding
         padding_y =((np.shape(del_Z)[3]*self.stride) - np.shape(del_X)[3]) + self.filter_dimension - self.stride - self.padding
         
-        print("padding_x ", padding_x, " padding_y ", padding_y)
 
         for k in range(np.shape(del_Z)[0]): 
             for i in range(np.shape(del_Z)[1]):
@@ -140,21 +129,23 @@ class Pooling(Layer):
         self.pool_dimension = pool_dimension
         self.stride = stride
         self.pool_input = []
-        self.shape = None
-        self.del_p = []
+        self.shape = None 
     
     def forward_propagation(self, feature_map): 
         #print("Pooling ",end=" ")
         pool_dimX =(int) ((feature_map[0][0].shape[0]-self.pool_dimension+self.stride)/self.stride)
         pool_dimY =(int) ((feature_map[0][0].shape[1]-self.pool_dimension+self.stride)/self.stride)
         pool = np.zeros((feature_map.shape[0],feature_map.shape[1], pool_dimX, pool_dimY))
+        
         self.shape = pool.shape
         self.input_shape = feature_map.shape
+
         for img_idx in range(feature_map.shape[0]):
             for i in range(feature_map.shape[1]):
                 for x in range(pool_dimX):
                     for y in range(pool_dimY):
                         pool[img_idx][i][x][y] = np.max(feature_map[img_idx][i][(x*self.stride) : (x*self.stride+self.pool_dimension), (y*self.stride) : (y*self.stride+self.pool_dimension)])
+        
         self.pool_input = feature_map
         return pool
 
@@ -176,8 +167,7 @@ class Pooling(Layer):
 
 class FlattenLayer(Layer):
     def __init__(self):
-        self.flattened_vector = []
-        self.del_f = []
+        self.pool_shape = None
 
     
     def normalize(self, x):
@@ -190,21 +180,20 @@ class FlattenLayer(Layer):
         pool = np.array(pool)
         flattened_vector = []
         for img_idx in range(pool.shape[0]):
-            flattened_vector.append(self.normalize(pool[img_idx].flatten()))
-        self.flattened_vector = np.array(flattened_vector)
-        return self.flattened_vector
+            flattened_vector.append(self.normalize(pool[img_idx].flatten())) 
+
+        return np.array(flattened_vector)
 
     def back_propagation(self, del_Z): 
         #print("Flatten ",end=" ")
-        self.del_f =  np.reshape(del_Z, self.pool_shape)
-        return self.del_f
+        del_f =  np.reshape(del_Z, self.pool_shape)
+        return del_f
 
 class FullyConnectedNN(Layer):
     def __init__(self, output_dim):
         self.output_dim = output_dim 
-        self.weights = [] 
-        self.FL_output = []
-        self.biases = np.ones(output_dim) 
+        self.weights = []  
+        self.biases = [] 
         self.alpha = 0.001
         self.flattened_input = []
 
@@ -212,12 +201,16 @@ class FullyConnectedNN(Layer):
     def forward_propagation(self, flatten): 
         #print("Fully Connected ",end=" ")
         self.flattened_input = flatten
-        self.weights = np.random.randint(0,10, size=(self.output_dim, flatten.shape[1]))/ flatten.shape[1]
+        if self.weights == []:
+            self.weights = np.random.randint(0,10, size=(self.output_dim, flatten.shape[1]))/ flatten.shape[1]
+        if self.biases == []:
+            self.biases = np.ones(self.output_dim)
+
         FL_output = []
         for i in range(flatten.shape[0]): 
-            FL_output.append(np.tanh(np.dot(self.weights, (flatten[i])) + self.biases))
-        self.FL_output = np.array(FL_output)
-        return self.FL_output
+            FL_output.append(np.tanh(np.dot(self.weights, (flatten[i])) + self.biases)) 
+
+        return np.array(FL_output)
 
     def back_propagation(self, del_Z): 
         #print("Fully Connected ",end=" ")  
@@ -236,26 +229,17 @@ class FullyConnectedNN(Layer):
 
 
 class Softmax(Layer):
-    def __init__(self):
-        self.input = []
-        self.output = []
-
+    def __init__(self): 
+        pass
     
     def forward_propagation(self, a_out): 
-        #print("Softmax ",end=" ")
-        self.input = a_out
         output = [] 
-        for i in range(len(a_out)):
-            y_pred = np.exp(a_out[i])
-            y_pred = y_pred/np.sum(y_pred)
-            output.append(np.exp(a_out[i])/np.sum(np.exp(a_out[i])))
-        self.output = np.array(output)
-        return self.output
+        for i in range(len(a_out)): 
+            output.append(np.exp(a_out[i])/np.sum(np.exp(a_out[i]))) 
+        return np.array(output)
 
-    def back_propagation(self, y):
-        #print("Softmax ",end=" ")
-        y_pred = y
-        del_Z = np.array(self.output) - np.array(y_pred) 
+    def back_propagation(self, del_Z):  
+        self.delZ = del_Z 
         return del_Z
          
 

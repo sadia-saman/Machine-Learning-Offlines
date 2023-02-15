@@ -1,0 +1,9 @@
+Epoch =  0 Training Loss =  628.5364738513294 Training F1_score =  0.125 Training Accuracy =  0.16666666666666666
+Epoch =  0 Validation Loss =  206.17089452392284 Validation F1_score =  0.16494845360824742 Validation Accuracy =  0.47058823529411764
+
+Epoch =  1 Training Loss =  624.0554949393413 Training F1_score =  0.17567567567567569 Training Accuracy =  0.7222222222222222
+Epoch =  1 Validation Loss =  206.90254792931694 Validation F1_score =  0.14583333333333334 Validation Accuracy =  0.2692307692307692
+
+
+Epoch =  2 Training Loss =  622.8160555023312 Training F1_score =  0.2059800664451827 Training Accuracy =  -3.4444444444444446
+Epoch =  2 Validation Loss =  204.77491742806217 Validation F1_score =  0.20202020202020202 Validation Accuracy =  -10.0

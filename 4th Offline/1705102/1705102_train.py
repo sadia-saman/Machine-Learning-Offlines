@@ -398,6 +398,9 @@ class Model:
             validation_predictions_array = np.argmax(validation_y_pred, axis=1)
             validation_F1_score, validation_accuracy = self.f1_score(validation_labels_array, validation_predictions_array)
 
+            epoch =(int)(epoch)
+            accuracy[epoch] = validation_accuracy
+            f1_score[epoch] = validation_F1_score
 
             self. prev_acc = 0
             self.prev_f1 = 0
